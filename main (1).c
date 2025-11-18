@@ -108,7 +108,7 @@ void print_array(int *v, int n) {
     printf("\n");
 }
 
-// --- ORDENAR VETOR ---
+// --- ORDENAR VETOR MANUAL ---
 void ordenar_vetor(int *v, int n, const char *caso) {
     Metrics m;
     int op;
@@ -158,6 +158,50 @@ void ordenar_vetor(int *v, int n, const char *caso) {
     esperar_enter();
 }
 
+// --- BENCHMARK AUTOMÁTICO ---
+void benchmark() {
+    int tamanhos[] = {100, 1000, 10000};
+    const char *nomes_metodos[] = {"selection", "insertion", "quick"};
+    void (*funcoes[])(int*,int,Metrics*) = {
+        selection_sort,
+        insertion_sort,
+        quick_sort
+    };
+
+    printf("\n=== BENCHMARK AUTOMÁTICO ===\n");
+    printf("Tamanhos: 100, 1000, 10000\n");
+    printf("Métodos: Selection, Insertion, Quick\n\n");
+
+    printf("metodo,N,caso,comparacoes,trocas,tempo_ms\n");
+
+    for (int t = 0; t < 3; t++) {
+        int N = tamanhos[t];
+
+        int *v = malloc(sizeof(int) * N);
+        int *aux = malloc(sizeof(int) * N);
+        if (!v || !aux) { perror("malloc"); return; }
+
+        // gerar caso aleatório
+        for (int i = 0; i < N; i++) v[i] = rand() % 100000;
+
+        // rodar 3 métodos
+        for (int m = 0; m < 3; m++) {
+            Metrics M;
+            for (int i = 0; i < N; i++) aux[i] = v[i];
+
+            double tempo = run_sort(funcoes[m], aux, N, &M);
+
+            printf("%s,%d,benchmark,%lld,%lld,%.3f\n",
+                   nomes_metodos[m], N, M.cmp, M.swap, tempo);
+        }
+
+        free(v);
+        free(aux);
+    }
+
+    esperar_enter();
+}
+
 // --- RGM ---
 void menu_rgm() {
     char rgm[100];
@@ -181,7 +225,8 @@ int main() {
     while (1) {
         printf("\n=== MENU PRINCIPAL ===\n");
         printf("1 - Ordenar RGM\n");
-        printf("2 - Ordenar números aleatórios (tamanho fixo 10)\n");
+        printf("2 - Ordenar vetor aleatório (10 números)\n");
+        printf("3 - Benchmark automático (100, 1000, 10000)\n");
         printf("0 - Sair\n");
         printf("Opção: ");
 
@@ -202,6 +247,9 @@ int main() {
             print_array(v, 10);
 
             ordenar_vetor(v, 10, "aleatorio");
+
+        } else if (op == 3) {
+            benchmark();
 
         } else if (op == 0) break;
         else printf("Opção inválida!\n");
