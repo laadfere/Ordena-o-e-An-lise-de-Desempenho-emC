@@ -57,6 +57,42 @@ void insertion_sort(int *v, int n, Metrics *m) {
     }
 }
 
+// --- QUICK SORT ---
+int partition(int *v, int low, int high, Metrics *m) {
+    int pivot = v[high];
+    int i = low - 1;
+
+    for (int j = low; j < high; j++) {
+        COUNT_CMP(m);
+        if (v[j] <= pivot) {
+            i++;
+            int t = v[i];
+            v[i] = v[j];
+            v[j] = t;
+            COUNT_SWAP(m);
+        }
+    }
+
+    int t = v[i + 1];
+    v[i + 1] = v[high];
+    v[high] = t;
+    COUNT_SWAP(m);
+
+    return i + 1;
+}
+
+void quick_sort_rec(int *v, int low, int high, Metrics *m) {
+    if (low < high) {
+        int p = partition(v, low, high, m);
+        quick_sort_rec(v, low, p - 1, m);
+        quick_sort_rec(v, p + 1, high, m);
+    }
+}
+
+void quick_sort(int *v, int n, Metrics *m) {
+    quick_sort_rec(v, 0, n - 1, m);
+}
+
 // --- RODAR SORT ---
 double run_sort(void (*fn)(int*,int,Metrics*), int *v, int n, Metrics *m) {
     reset_metrics(m);
@@ -80,6 +116,7 @@ void ordenar_vetor(int *v, int n, const char *caso) {
     printf("\nEscolha o método:\n");
     printf("1 - Selection Sort\n");
     printf("2 - Insertion Sort\n");
+    printf("3 - Quick Sort\n");
     printf("Opção: ");
 
     if (scanf("%d", &op) != 1) {
@@ -88,8 +125,10 @@ void ordenar_vetor(int *v, int n, const char *caso) {
         return;
     }
 
-    const char *metodo = (op == 1) ? "selection" :
-                         (op == 2) ? "insertion" : NULL;
+    const char *metodo =
+        (op == 1) ? "selection" :
+        (op == 2) ? "insertion" :
+        (op == 3) ? "quick" : NULL;
 
     if (!metodo) {
         printf("Opção inválida.\n");
@@ -102,7 +141,8 @@ void ordenar_vetor(int *v, int n, const char *caso) {
 
     double tempo;
     if (op == 1) tempo = run_sort(selection_sort, aux, n, &m);
-    else tempo = run_sort(insertion_sort, aux, n, &m);
+    else if (op == 2) tempo = run_sort(insertion_sort, aux, n, &m);
+    else tempo = run_sort(quick_sort, aux, n, &m);
 
     printf("\n--- RESULTADO (%s) ---\n", caso);
     print_array(aux, n);
@@ -169,4 +209,3 @@ int main() {
 
     return 0;
 }
-
