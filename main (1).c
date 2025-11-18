@@ -14,6 +14,9 @@ void reset_metrics(Metrics *m) {
     m->swap = 0;
 }
 
+#define COUNT_CMP(m)  ((m)->cmp++)
+#define COUNT_SWAP(m) ((m)->swap++)
+
 void esperar_enter() {
     int c;
     printf("\nPressione ENTER para continuar...");
@@ -21,8 +24,22 @@ void esperar_enter() {
     getchar();
 }
 
-#define COUNT_CMP(m)  ((m)->cmp++)
-#define COUNT_SWAP(m) ((m)->swap++)
+// --- SELECTION SORT ---
+void selection_sort(int *v, int n, Metrics *m) {
+    for (int i = 0; i < n - 1; i++) {
+        int min = i;
+        for (int j = i + 1; j < n; j++) {
+            COUNT_CMP(m);
+            if (v[j] < v[min]) min = j;
+        }
+        if (min != i) {
+            int t = v[i];
+            v[i] = v[min];
+            v[min] = t;
+            COUNT_SWAP(m);
+        }
+    }
+}
 
 // --- INSERTION SORT ---
 void insertion_sort(int *v, int n, Metrics *m) {
@@ -49,40 +66,55 @@ double run_sort(void (*fn)(int*,int,Metrics*), int *v, int n, Metrics *m) {
     return 1000.0 * (t1 - t0) / CLOCKS_PER_SEC;
 }
 
+// --- UTILIDADES ---
 void print_array(int *v, int n) {
     for (int i = 0; i < n; i++) printf("%d ", v[i]);
     printf("\n");
 }
 
-// --- MENU PARA ORDENAR ---
+// --- ORDENAR VETOR ---
 void ordenar_vetor(int *v, int n, const char *caso) {
     Metrics m;
+    int op;
 
-    printf("\nMétodo disponível:\n");
-    printf("1 - Insertion Sort\n");
+    printf("\nEscolha o método:\n");
+    printf("1 - Selection Sort\n");
+    printf("2 - Insertion Sort\n");
     printf("Opção: ");
 
-    int op;
-    if (scanf("%d", &op) != 1 || op != 1) {
+    if (scanf("%d", &op) != 1) {
+        int c; while ((c = getchar()) != '\n');
+        printf("Entrada inválida.\n");
+        return;
+    }
+
+    const char *metodo = (op == 1) ? "selection" :
+                         (op == 2) ? "insertion" : NULL;
+
+    if (!metodo) {
         printf("Opção inválida.\n");
         return;
     }
 
     int *aux = malloc(sizeof(int) * n);
+    if (!aux) { perror("malloc"); return; }
     for (int i = 0; i < n; i++) aux[i] = v[i];
 
-    double tempo = run_sort(insertion_sort, aux, n, &m);
+    double tempo;
+    if (op == 1) tempo = run_sort(selection_sort, aux, n, &m);
+    else tempo = run_sort(insertion_sort, aux, n, &m);
 
     printf("\n--- RESULTADO (%s) ---\n", caso);
     print_array(aux, n);
 
     printf("\nCSV:\n");
     printf("metodo,N,caso,comparacoes,trocas,tempo_ms\n");
-    printf("insertion,%d,%s,%lld,%lld,%.3f\n", n, caso, m.cmp, m.swap, tempo);
+    printf("%s,%d,%s,%lld,%lld,%.3f\n",
+           metodo, n, caso, m.cmp, m.swap, tempo);
 
     free(aux);
 
-    int c; while ((c = getchar()) != '\n' && c != EOF) {}
+    int c; while ((c = getchar()) != '\n');
     esperar_enter();
 }
 
@@ -90,15 +122,15 @@ void ordenar_vetor(int *v, int n, const char *caso) {
 void menu_rgm() {
     char rgm[100];
     printf("Digite seu RGM: ");
-    scanf("%99s", rgm);
+    if (scanf("%99s", rgm) != 1) return;
 
     int n = strlen(rgm);
     int *v = malloc(sizeof(int) * n);
+    if (!v) { perror("malloc"); return; }
 
     for (int i = 0; i < n; i++) v[i] = rgm[i] - '0';
 
     ordenar_vetor(v, n, "rgm");
-
     free(v);
 }
 
@@ -109,19 +141,32 @@ int main() {
     while (1) {
         printf("\n=== MENU PRINCIPAL ===\n");
         printf("1 - Ordenar RGM\n");
+        printf("2 - Ordenar números aleatórios (tamanho fixo 10)\n");
         printf("0 - Sair\n");
         printf("Opção: ");
 
         int op;
         if (scanf("%d", &op) != 1) {
-            int c; while ((c = getchar()) != '\n' && c != EOF) {}
+            int c; while ((c = getchar()) != '\n');
             continue;
         }
 
-        if (op == 1) menu_rgm();
-        else if (op == 0) break;
+        if (op == 1) {
+            menu_rgm();
+
+        } else if (op == 2) {
+            int v[10];
+            for (int i = 0; i < 10; i++) v[i] = rand() % 100;
+
+            printf("Vetor gerado:\n");
+            print_array(v, 10);
+
+            ordenar_vetor(v, 10, "aleatorio");
+
+        } else if (op == 0) break;
         else printf("Opção inválida!\n");
     }
 
     return 0;
 }
+
